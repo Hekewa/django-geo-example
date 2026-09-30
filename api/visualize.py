@@ -86,7 +86,7 @@ def truckstop_map(request):
     fig.update_layout(
         margin=dict(l=0, r=0, t=40, b=0),
         map=dict(
-            style="open-street-map",
+            style="carto-positron",
             center=dict(
                 lat=39.8283,
                 lon=-98.5795,

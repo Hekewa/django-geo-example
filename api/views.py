@@ -2,6 +2,7 @@ import bisect
 import math
 import os
 import logging
+import time
 from functools import lru_cache
 
 import numpy as np
@@ -153,6 +154,7 @@ class RouteOptimizationView(APIView):
     renderer_classes = [JSONRenderer, StaticHTMLRenderer]
 
     def get(self, request):
+        start_time = time.perf_counter()
         start_address = request.query_params.get("start")
         end_address = request.query_params.get("end")
 
@@ -189,6 +191,9 @@ class RouteOptimizationView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            logger.warning("API requests total time (%.4fs)", time.perf_counter() - start_time)
+
+            processing_start_time = time.perf_counter()
             route_geometry = route["geometry"]
             route_coordinates = route_geometry["coordinates"]
             cumulative_distances = build_route_distances(route_coordinates)
@@ -235,6 +240,7 @@ class RouteOptimizationView(APIView):
                 "route_geometry": route_geometry,
             }
 
+            logger.warning("route processing total time (%.4fs)", time.perf_counter() - processing_start_time)
             # --- Content Negotiation: Check if request favors HTML (Browser) ---
             accept_header = request.headers.get("Accept", "")
             wants_html = "text/html" in accept_header and (
@@ -333,7 +339,7 @@ class RouteOptimizationView(APIView):
         fig.update_layout(
             margin=dict(l=0, r=0, t=0, b=0),
             map=dict(
-                style="open-street-map",
+                style="carto-positron",
                 center=dict(lat=center_lat, lon=center_lon),
                 zoom=4.5,
             ),
@@ -341,7 +347,9 @@ class RouteOptimizationView(APIView):
             legend=dict(x=0.01, y=0.99, bgcolor="rgba(255, 255, 255, 0.8)"),
         )
 
-        plotly_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+        plotly_html = fig.to_html(full_html=False, 
+                                  include_plotlyjs="cdn",
+                                  default_width="95%")
 
         # Create styled dashboard layout
         html_content = f"""<!DOCTYPE html>
